@@ -32,9 +32,13 @@ fun main(args: Array<String>) {
                                 gaps
                             )
                         ).use { rangeStream ->
-                            writePdfResult(rangeStream, args)
+                            writePdfResult(rangeStream, args[0])
                         }
-                        writeSignature(dictObj, args)
+                        writeSignature(
+                            dictObj.getAsString(
+                                PdfName.Contents
+                            ).valueBytes, args[0]
+                        )
                     }
                 }
             }
@@ -42,29 +46,27 @@ fun main(args: Array<String>) {
     }
 }
 
-private fun writeSignature(dictObj: PdfDictionary, args: Array<String>) {
+private fun writeSignature(sigBytes: ByteArray, fileName: String) {
     val ksiSignature =
         InMemoryKsiSignatureFactory().createSignature(
             ByteArrayInputStream(
-                dictObj.getAsString(
-                    PdfName.Contents
-                ).valueBytes
+                sigBytes
             )
         )
-    val signatureFile = File(args[0].substring(0, args[0].length - 4).plus("_result.ksig"))
+    val signatureFile = File(fileName.substring(0, fileName.length - 4).plus("_result.ksig"))
     FileOutputStream(signatureFile).use { signatureOutputStream ->
         ksiSignature.writeTo(signatureOutputStream)
     }
 }
 
-private fun writePdfResult(rangeStream: RASInputStream, args: Array<String>) {
+private fun writePdfResult(rangeStream: RASInputStream, fileName: String) {
     val result = ByteArrayOutputStream()
     val buf = ByteArray(8192)
     var readInt: Int
     while ((rangeStream.read(buf, 0, buf.size).also { readInt = it }) > 0) {
         result.write(buf, 0, readInt)
     }
-    val excludedDoc = File(args[0].substring(0, args[0].length - 4).plus("_result.pdf"))
+    val excludedDoc = File(fileName.substring(0, fileName.length - 4).plus("_result.pdf"))
     FileOutputStream(excludedDoc).use { pdfOutStream ->
         result.writeTo(pdfOutStream)
     }
@@ -72,8 +74,8 @@ private fun writePdfResult(rangeStream: RASInputStream, args: Array<String>) {
 
 private fun containsKsiSig(
     dictObj: PdfDictionary,
-    ksiSig: PdfName
-) = dictObj.containsKey(PdfName.Filter) && dictObj.containsValue(ksiSig)
+    ksiSigName: PdfName
+) = dictObj.containsKey(PdfName.Filter) && dictObj.containsValue(ksiSigName)
 
 private fun checkIsDictionary(pdfObject: PdfObject) =
     pdfObject.isDictionary
