@@ -1,10 +1,7 @@
 import com.guardtime.ksi.unisignature.inmemory.InMemoryKsiSignatureFactory
 import com.itextpdf.io.source.RASInputStream
 import com.itextpdf.io.source.RandomAccessSourceFactory
-import com.itextpdf.kernel.pdf.PdfDictionary
-import com.itextpdf.kernel.pdf.PdfDocument
-import com.itextpdf.kernel.pdf.PdfName
-import com.itextpdf.kernel.pdf.PdfReader
+import com.itextpdf.kernel.pdf.*
 import org.apache.commons.io.FileUtils
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -19,47 +16,64 @@ fun main(args: Array<String>) {
         println("This will generate two files, a .ksig that is the signature and a .pdf that is the document that is signed by the signature")
         exitProcess(1)
     }
-    PdfReader(ByteArrayInputStream(FileUtils.readFileToByteArray(File(args[0])))).use { reader ->
+    val pdfReader = PdfReader(ByteArrayInputStream(FileUtils.readFileToByteArray(File(args[0]))))
+    pdfReader.use { reader ->
         PdfDocument(reader).use { pdfDocument ->
-            val ksiSig = PdfName("GT.KSI")
             repeat(pdfDocument.numberOfPdfObjects) { index ->
                 val pdfObject = pdfDocument.getPdfObject(index + 1)
-                if (pdfObject != null) {
-                    if (pdfObject.isDictionary) {
-                        val dictObj = pdfDocument.getPdfObject(index + 1) as PdfDictionary
-                        if (dictObj.containsKey(PdfName.Filter) && dictObj.containsValue(ksiSig)) {
-                            val signatureString = dictObj.getAsString(PdfName.Contents)
-                            val byteRangeArray = dictObj.getAsArray(PdfName.ByteRange)
-                            val gaps = byteRangeArray.toLongArray()
-                            val readerSource = pdfDocument.reader.safeFile.createSourceView()
-
-                            RASInputStream(
-                                RandomAccessSourceFactory().createRanged(
-                                    readerSource,
-                                    gaps
-                                )
-                            ).use { rangeStream ->
-                                val result = ByteArrayOutputStream()
-                                val buf = ByteArray(8192)
-                                var readInt: Int
-                                while ((rangeStream.read(buf, 0, buf.size).also { readInt = it }) > 0) {
-                                    result.write(buf, 0, readInt)
-                                }
-                                val excludedDoc = File(args[0].substring(0, args[0].length - 4).plus("_result.pdf"))
-                                FileOutputStream(excludedDoc).use { pdfOutStream ->
-                                    result.writeTo(pdfOutStream)
-                                }
-                            }
-                            val ksiSignature =
-                                InMemoryKsiSignatureFactory().createSignature(ByteArrayInputStream(signatureString.valueBytes))
-                            val signaturefile = File(args[0].substring(0, args[0].length - 4).plus("_result.ksig"))
-                            FileOutputStream(signaturefile).use { signatureOutputStream ->
-                                ksiSignature.writeTo(signatureOutputStream)
-                            }
+                pdfObject?.takeIf { checkIsDictionary(it) }?.apply {
+                    val dictObj = pdfDocument.getPdfObject(index + 1) as PdfDictionary
+                    dictObj.takeIf { containsKsiSig(it, PdfName("GT.KSI")) }?.apply {
+                        val gaps = dictObj.getAsArray(PdfName.ByteRange).toLongArray()
+                        val readerSource = pdfDocument.reader.safeFile.createSourceView()
+                        RASInputStream(
+                            RandomAccessSourceFactory().createRanged(
+                                readerSource,
+                                gaps
+                            )
+                        ).use { rangeStream ->
+                            writePdfResult(rangeStream, args)
                         }
+                        writeSignature(dictObj, args)
                     }
                 }
             }
         }
     }
 }
+
+private fun writeSignature(dictObj: PdfDictionary, args: Array<String>) {
+    val ksiSignature =
+        InMemoryKsiSignatureFactory().createSignature(
+            ByteArrayInputStream(
+                dictObj.getAsString(
+                    PdfName.Contents
+                ).valueBytes
+            )
+        )
+    val signatureFile = File(args[0].substring(0, args[0].length - 4).plus("_result.ksig"))
+    FileOutputStream(signatureFile).use { signatureOutputStream ->
+        ksiSignature.writeTo(signatureOutputStream)
+    }
+}
+
+private fun writePdfResult(rangeStream: RASInputStream, args: Array<String>) {
+    val result = ByteArrayOutputStream()
+    val buf = ByteArray(8192)
+    var readInt: Int
+    while ((rangeStream.read(buf, 0, buf.size).also { readInt = it }) > 0) {
+        result.write(buf, 0, readInt)
+    }
+    val excludedDoc = File(args[0].substring(0, args[0].length - 4).plus("_result.pdf"))
+    FileOutputStream(excludedDoc).use { pdfOutStream ->
+        result.writeTo(pdfOutStream)
+    }
+}
+
+private fun containsKsiSig(
+    dictObj: PdfDictionary,
+    ksiSig: PdfName
+) = dictObj.containsKey(PdfName.Filter) && dictObj.containsValue(ksiSig)
+
+private fun checkIsDictionary(pdfObject: PdfObject) =
+    pdfObject.isDictionary
