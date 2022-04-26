@@ -1,7 +1,11 @@
 import com.guardtime.ksi.unisignature.inmemory.InMemoryKsiSignatureFactory
 import com.itextpdf.io.source.RASInputStream
 import com.itextpdf.io.source.RandomAccessSourceFactory
-import com.itextpdf.kernel.pdf.*
+import com.itextpdf.kernel.pdf.PdfDictionary
+import com.itextpdf.kernel.pdf.PdfDocument
+import com.itextpdf.kernel.pdf.PdfName
+import com.itextpdf.kernel.pdf.PdfObject
+import com.itextpdf.kernel.pdf.PdfReader
 import org.apache.commons.io.FileUtils
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
