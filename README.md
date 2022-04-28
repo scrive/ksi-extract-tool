@@ -12,6 +12,6 @@ use other build tools. To build the docker container just run `docker build -t k
 directory where you cloned the project.
 
 When the container is built, go to a directory where you have a Scrive signed document and run the command
-`docker run --rm -v $PWD:/files/ ksi-extract-tool -e INPUT_FILE=_YOUR_FILENAME_` (if you don't specify a filename through `INPUT_FILE` env variable, it will assume `input.pdf`. You should end up with two files in the directory called 
+`docker run --rm -v $PWD:/files/ ksi-extract-tool _YOUR_FILENAME_` . You should end up with two files in the directory called 
 `input_result.ksig` and `input_result.pdf`. Upload these two to the Guardtime verification service and see the
 status and information about the KSI seal.  
