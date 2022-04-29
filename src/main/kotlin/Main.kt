@@ -14,13 +14,14 @@ import java.io.FileOutputStream
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
-    if (args.size != 1 || !args[0].endsWith(".pdf")) {
+    if (args.size != 2 || !args[1].endsWith(".pdf")) {
         println("USAGE: java -jar executable.jar input")
         println("Input file must be a pdf.")
         println("This will generate two files, a .ksig that is the signature and a .pdf that is the document that is signed by the signature")
         exitProcess(1)
     }
-    val pdfReader = PdfReader(ByteArrayInputStream(FileUtils.readFileToByteArray(File(args[0]))))
+    val fileName = args[0].plus(args[1])
+    val pdfReader = PdfReader(ByteArrayInputStream(FileUtils.readFileToByteArray(File(fileName))))
     pdfReader.use { reader ->
         PdfDocument(reader).use { pdfDocument ->
             repeat(pdfDocument.numberOfPdfObjects) { index ->
@@ -36,12 +37,12 @@ fun main(args: Array<String>) {
                                 gaps
                             )
                         ).use { rangeStream ->
-                            writePdfResult(rangeStream, args[0])
+                            writePdfResult(rangeStream, fileName)
                         }
                         writeSignature(
                             dictObj.getAsString(
                                 PdfName.Contents
-                            ).valueBytes, args[0]
+                            ).valueBytes, fileName
                         )
                     }
                 }

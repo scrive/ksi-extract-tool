@@ -16,8 +16,7 @@ FROM openjdk:11-jre-slim
 ARG ARTIFACT_NAME=ksi-extract-tool-1.0-SNAPSHOT-standalone.jar
 ARG HOME
 
-ENV INPUT_FILE=input.pdf
 
 COPY --from=builder $HOME/build/libs/$ARTIFACT_NAME app.jar
 
-ENTRYPOINT java -jar app.jar "/files/"$INPUT_FILE
+ENTRYPOINT ["java", "-jar", "app.jar", "/files/"]
