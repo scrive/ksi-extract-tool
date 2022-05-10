@@ -17,6 +17,7 @@ dependencies {
     implementation("com.itextpdf:itext7-core:7.2.1")
     implementation("com.guardtime:ksi-api:4.12.181")
     implementation("commons-io:commons-io:2.11.0")
+    implementation("info.picocli:picocli:4.6.3")
 }
 
 tasks.test {
@@ -30,7 +31,6 @@ tasks.withType<KotlinCompile> {
 application {
     mainClass.set("MainKt")
 }
-
 tasks {
     val fatJar = register<Jar>("fatJar") {
         dependsOn.addAll(listOf("compileJava", "compileKotlin", "processResources")) // We need this for Gradle optimization to work

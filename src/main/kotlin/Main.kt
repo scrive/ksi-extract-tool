@@ -7,49 +7,64 @@ import com.itextpdf.kernel.pdf.PdfName
 import com.itextpdf.kernel.pdf.PdfObject
 import com.itextpdf.kernel.pdf.PdfReader
 import org.apache.commons.io.FileUtils
+import picocli.CommandLine
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.util.*
 import kotlin.system.exitProcess
 
-fun main(args: Array<String>) {
-    if (args.size != 2 || !args[1].endsWith(".pdf")) {
-        println("USAGE: java -jar executable.jar input")
-        println("Input file must be a pdf.")
-        println("This will generate two files, a .ksig that is the signature and a .pdf that is the document that is signed by the signature")
-        exitProcess(1)
+@CommandLine.Command(name = "ksi-extract-tool.jar")
+class KsiExtractor : Runnable{
+
+    var fileName = ""
+
+    @CommandLine.Parameters(arity = "1", paramLabel = "<filename>", description = ["Input document. Must be a PDF"])
+    fun setInputFile(fileName: String) {
+        if (!fileName.endsWith(".pdf")) {
+            throw InputMismatchException("Input file must be a PDF.")
+        }
+        this.fileName = fileName
     }
-    val fileName = args[0].plus(args[1])
-    val pdfReader = PdfReader(ByteArrayInputStream(FileUtils.readFileToByteArray(File(fileName))))
-    pdfReader.use { reader ->
-        PdfDocument(reader).use { pdfDocument ->
-            repeat(pdfDocument.numberOfPdfObjects) { index ->
-                val pdfObject = pdfDocument.getPdfObject(index + 1)
-                pdfObject?.takeIf { checkIsDictionary(it) }?.apply {
-                    val dictObj = pdfDocument.getPdfObject(index + 1) as PdfDictionary
-                    dictObj.takeIf { containsKsiSig(it, PdfName("GT.KSI")) }?.apply {
-                        val gaps = dictObj.getAsArray(PdfName.ByteRange).toLongArray()
-                        val readerSource = pdfDocument.reader.safeFile.createSourceView()
-                        RASInputStream(
-                            RandomAccessSourceFactory().createRanged(
-                                readerSource,
-                                gaps
+
+    override fun run() {
+        val pdfReader = PdfReader(ByteArrayInputStream(FileUtils.readFileToByteArray(File(fileName))))
+        pdfReader.use { reader ->
+            PdfDocument(reader).use { pdfDocument ->
+                repeat(pdfDocument.numberOfPdfObjects) { index ->
+                    val pdfObject = pdfDocument.getPdfObject(index + 1)
+                    pdfObject?.takeIf { checkIsDictionary(it) }?.apply {
+                        val dictObj = pdfDocument.getPdfObject(index + 1) as PdfDictionary
+                        dictObj.takeIf { containsKsiSig(it, PdfName("GT.KSI")) }?.apply {
+                            val gaps = dictObj.getAsArray(PdfName.ByteRange).toLongArray()
+                            val readerSource = pdfDocument.reader.safeFile.createSourceView()
+                            RASInputStream(
+                                RandomAccessSourceFactory().createRanged(
+                                    readerSource,
+                                    gaps
+                                )
+                            ).use { rangeStream ->
+                                writePdfResult(rangeStream, fileName)
+                            }
+                            writeSignature(
+                                dictObj.getAsString(
+                                    PdfName.Contents
+                                ).valueBytes, fileName
                             )
-                        ).use { rangeStream ->
-                            writePdfResult(rangeStream, fileName)
                         }
-                        writeSignature(
-                            dictObj.getAsString(
-                                PdfName.Contents
-                            ).valueBytes, fileName
-                        )
                     }
                 }
             }
         }
     }
 }
+
+fun main(args: Array<String>) {
+    val exitCode = CommandLine(KsiExtractor()).execute(*args)
+    exitProcess(exitCode)
+}
+
 
 private fun writeSignature(sigBytes: ByteArray, fileName: String) {
     val ksiSignature =
