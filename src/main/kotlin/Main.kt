@@ -1,31 +1,32 @@
 import com.guardtime.ksi.unisignature.inmemory.InMemoryKsiSignatureFactory
 import com.itextpdf.io.source.RASInputStream
 import com.itextpdf.io.source.RandomAccessSourceFactory
-import com.itextpdf.kernel.pdf.PdfDictionary
-import com.itextpdf.kernel.pdf.PdfDocument
-import com.itextpdf.kernel.pdf.PdfName
-import com.itextpdf.kernel.pdf.PdfObject
-import com.itextpdf.kernel.pdf.PdfReader
+import com.itextpdf.kernel.pdf.*
 import org.apache.commons.io.FileUtils
 import picocli.CommandLine
+import picocli.CommandLine.Model.CommandSpec
+import picocli.CommandLine.*
+
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.util.*
 import kotlin.system.exitProcess
 
-@CommandLine.Command(name = "ksi-extract-tool.jar")
-class KsiExtractor : Runnable{
+@Command(name = "KSI Extract Tool")
+class KsiExtractor : Runnable {
 
-    var fileName = ""
+    private lateinit var fileName: String
 
-    @CommandLine.Parameters(arity = "1", paramLabel = "<filename>", description = ["Input document. Must be a PDF"])
-    fun setInputFile(fileName: String) {
+    @Spec
+    lateinit var spec : CommandSpec
+
+    @Parameters(arity = "1", paramLabel = "<filename>", description = ["Input document. Must be a PDF"])
+    fun setInputFile(fileNameParam: String) {
+        fileName = fileNameParam
         if (!fileName.endsWith(".pdf")) {
-            throw InputMismatchException("Input file must be a PDF.")
+            throw ParameterException(spec.commandLine(),"Input file must be a PDF.")
         }
-        this.fileName = fileName
     }
 
     override fun run() {
