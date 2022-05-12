@@ -1,11 +1,18 @@
 import com.guardtime.ksi.unisignature.inmemory.InMemoryKsiSignatureFactory
 import com.itextpdf.io.source.RASInputStream
 import com.itextpdf.io.source.RandomAccessSourceFactory
-import com.itextpdf.kernel.pdf.*
+import com.itextpdf.kernel.pdf.PdfDictionary
+import com.itextpdf.kernel.pdf.PdfDocument
+import com.itextpdf.kernel.pdf.PdfName
+import com.itextpdf.kernel.pdf.PdfObject
+import com.itextpdf.kernel.pdf.PdfReader
 import org.apache.commons.io.FileUtils
+import picocli.CommandLine.ParameterException
+import picocli.CommandLine.Spec
+import picocli.CommandLine.Command
 import picocli.CommandLine
+import picocli.CommandLine.Parameters
 import picocli.CommandLine.Model.CommandSpec
-import picocli.CommandLine.*
 
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -25,7 +32,7 @@ class KsiExtractor : Runnable {
     fun setInputFile(fileNameParam: String) {
         fileName = fileNameParam
         if (!fileName.endsWith(".pdf")) {
-            throw ParameterException(spec.commandLine(),"Input file must be a PDF.")
+            throw ParameterException(spec.commandLine(), "Input file must be a PDF.")
         }
     }
 
