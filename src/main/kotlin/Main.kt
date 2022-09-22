@@ -78,7 +78,7 @@ class KsiExtractor : Runnable {
                                         PdfName.Contents
                                     ).valueBytes, fileName
                                 )
-                            } else if(!configFile.isEmpty()) {
+                            } else if(configFile.isNotEmpty()) {
                                 writeLegacySignature(
                                     dictObj.getAsString(
                                         PdfName.Contents
@@ -99,7 +99,6 @@ fun main(args: Array<String>) {
     val exitCode = CommandLine(KsiExtractor()).execute(*args)
     exitProcess(exitCode)
 }
-
 
 private fun writeSignature(sigBytes: ByteArray, fileName: String) {
     val ksiSignature =
@@ -150,7 +149,6 @@ fun createKsi(configFileParam: String): KSI {
                     properties.getProperty("publicationsfile.constraint"))
         )
         .build()
-
 }
 
 private fun writePdfResult(rangeStream: RASInputStream, fileName: String) {
