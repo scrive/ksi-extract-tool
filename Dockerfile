@@ -13,12 +13,12 @@ RUN curl -0 https://secure.globalsign.com/cacert/docsignrootr45.crt --output doc
 RUN gradle build --no-daemon
 
 #Runtime container
-FROM amazoncorretto:11-alpine3.15-jdk
+FROM amazoncorretto:11
 
 ARG ARTIFACT_NAME=ksi-extract-tool-1.0-SNAPSHOT-standalone.jar
 ARG HOME
 COPY --from=builder $HOME/docsignrootr45.crt docsignrootr45.crt
-RUN keytool -importcert -alias guardtime -keystore  /usr/lib/jvm/default-jvm/lib/security/cacerts -storepass changeit -file docsignrootr45.crt -noprompt
+RUN keytool -importcert -alias guardtime -keystore  /usr/lib/jvm/java-11-amazon-corretto/lib/security/cacerts -storepass changeit -file docsignrootr45.crt -noprompt
 COPY --from=builder $HOME/build/libs/$ARTIFACT_NAME app.jar
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
