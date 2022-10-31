@@ -18,6 +18,8 @@ dependencies {
     implementation("com.guardtime:ksi-api:4.12.181")
     implementation("commons-io:commons-io:2.11.0")
     implementation("info.picocli:picocli:4.6.3")
+    implementation("com.guardtime:ksi-service-client-simple-http:4.18.217")
+    implementation(files("lib/signatureconverter-lib-1.2.0.jar"))
 }
 
 tasks.test {
